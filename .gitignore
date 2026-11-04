@@ -1,0 +1,12 @@
+# Keil 编译生成的文件
+**/Objects/
+**/Listings/
+**/DebugConfig/
+
+# Keil 用户界面和临时文件
+*.uvguix.*
+*.uvoptx
+
+# 系统临时文件
+Thumbs.db
+*.bak
