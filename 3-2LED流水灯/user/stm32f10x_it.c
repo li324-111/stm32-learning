@@ -151,7 +151,17 @@ void SysTick_Handler(void)
 /*void PPP_IRQHandler(void)
 {
 }*/
+/* TIM2每产生一次更新中断，这个变量加1 */
+volatile uint32_t Timer2_Count = 0;
 
+void TIM2_IRQHandler(void)
+{
+    if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
+    {
+        Timer2_Count++;
+        TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+    }
+}
 /**
   * @}
   */ 
