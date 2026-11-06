@@ -670,6 +670,16 @@
               <FileType>5</FileType>
               <FilePath>.\system\Timer.h</FilePath>
             </File>
+            <File>
+              <FileName>Serial.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\system\Serial.h</FilePath>
+            </File>
+            <File>
+              <FileName>Serial.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\system\Serial.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
