@@ -5,5 +5,7 @@
 
 void Serial_Init(void);
 void Serial_SendByte(uint8_t Byte);
+void Serial_SendString(char *String);
+uint8_t Serial_ReceiveByte(void);
 
 #endif

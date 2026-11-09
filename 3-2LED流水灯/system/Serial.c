@@ -60,3 +60,20 @@ void Serial_Init(void)
 			USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET
 		);
 	}
+	void Serial_SendString(char *String)
+{
+    uint16_t i;
+
+    for (i = 0; String[i] != '\0'; i++)
+    {
+        Serial_SendByte(String[i]);
+    }
+}
+	uint8_t Serial_ReceiveByte(void)
+{
+    while (
+        USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET
+    );
+
+    return USART_ReceiveData(USART1);
+}

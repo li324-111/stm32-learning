@@ -38,50 +38,73 @@ int main(void)
 	
 	Timer2_Init();
 	Serial_Init();
-	Serial_SendByte('A');
 
 	/* 外接流水灯任务的数据 */
 	uint16_t LED_Number = 0;
 	uint32_t LED_LastTime = 0;
-
-	/* 板载LED任务的数据 */
-	uint32_t BoardLED_LastTime = 0;
-	uint8_t BoardLED_State = 0;
+	
+	/*串口数据*/
+	uint32_t Serial_LastTime = 0;
 
 	while (1)
 	{
-		/* 任务1：每100ms移动一次外接流水灯 */
-		if (Timer2_Count - LED_LastTime >= 100)
+//		/* 任务1：每100ms移动一次外接流水灯 */
+//		if (Timer2_Count - LED_LastTime >= 100)
+//		{
+//			LED_LastTime = Timer2_Count;
+
+//			GPIO_Write(GPIOA, ~(0x0001 << LED_Number));
+
+//			LED_Number++;
+
+//			if (LED_Number >= 8)
+//			{
+//				LED_Number = 0;
+//			}
+//		}
+
+	
+//		/* 任务2：每1000ms发送一次字符串 */
+//		if (Timer2_Count - Serial_LastTime >= 1000)
+//		{
+//			Serial_LastTime = Timer2_Count;
+
+//			Serial_SendString("Hello STM32!\r\n");
+//		}
+		/*任务3：接收一字节*/
+		if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET)
 		{
-			LED_LastTime = Timer2_Count;
+			uint8_t ReceiveData;
 
-			GPIO_Write(GPIOA, ~(0x0001 << LED_Number));
-
-			LED_Number++;
-
-			if (LED_Number >= 8)
-			{
-				LED_Number = 0;
-			}
+			ReceiveData = USART_ReceiveData(USART1);
+			
+		if (ReceiveData == '1')
+		{
+			GPIO_ResetBits(GPIOC, GPIO_Pin_13);
+			Serial_SendString("LED ON\r\n");
+			Serial_SendByte(ReceiveData);
+			Serial_SendString("\r\n");
+		}			
+		
+		else if (ReceiveData == '0')
+		{
+			GPIO_SetBits(GPIOC, GPIO_Pin_13);
+			Serial_SendString("LED OFF\r\n");
+			
+			Serial_SendByte(ReceiveData);
+			Serial_SendString("\r\n");
 		}
-
-		/* 任务2：每500ms改变一次板载LED状态 */
-		if (Timer2_Count - BoardLED_LastTime >= 500)
+		else if (ReceiveData == 's')
 		{
-			BoardLED_LastTime = Timer2_Count;
-
-			if (BoardLED_State == 0)
-			{
-				/* PC13输出低电平，LED亮 */
-				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
-				BoardLED_State = 1;
-			}
-			else
-			{
-				/* PC13输出高电平，LED灭 */
-				GPIO_SetBits(GPIOC, GPIO_Pin_13);
-				BoardLED_State = 0;
-			}
+			Serial_SendString("PC13 state command received\r\n");
+		}
+		else if (ReceiveData == 'h')
+		{
+			Serial_SendString("1: LED ON\r\n");
+			Serial_SendString("0: LED OFF\r\n");
+			Serial_SendString("s: status\r\n");
+			Serial_SendString("h: help\r\n");
+		}
 		}
 	}
 }
