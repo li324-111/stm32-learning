@@ -1,6 +1,7 @@
 #include "stm32f10x.h"
 #include "Timer.h"
 #include "Serial.h"
+#include <string.h>
 
 extern volatile uint32_t Timer2_Count;
 int main(void)
@@ -45,6 +46,11 @@ int main(void)
 	
 	/*串口数据*/
 	uint32_t Serial_LastTime = 0;
+	char CommandBuffer[32];
+	uint8_t CommandIndex = 0;
+	uint8_t CommandReady = 0;
+	uint32_t CommandLastTime = 0;
+
 
 	while (1)
 	{
@@ -71,40 +77,116 @@ int main(void)
 
 //			Serial_SendString("Hello STM32!\r\n");
 //		}
-		/*任务3：接收一字节*/
-		if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET)
-		{
-			uint8_t ReceiveData;
+//		/*任务3：接收一字节*/
+//		if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET)
+//		{
+//			uint8_t ReceiveData;
 
-			ReceiveData = USART_ReceiveData(USART1);
-			
-		if (ReceiveData == '1')
-		{
-			GPIO_ResetBits(GPIOC, GPIO_Pin_13);
-			Serial_SendString("LED ON\r\n");
-			Serial_SendByte(ReceiveData);
-			Serial_SendString("\r\n");
-		}			
+//			ReceiveData = USART_ReceiveData(USART1);
+//			
+//		if (ReceiveData == '1')
+//		{
+//			GPIO_ResetBits(GPIOC, GPIO_Pin_13);
+//			Serial_SendString("LED ON\r\n");
+//			Serial_SendByte(ReceiveData);
+//			Serial_SendString("\r\n");
+//		}			
+//		
+//		else if (ReceiveData == '0')
+//		{
+//			GPIO_SetBits(GPIOC, GPIO_Pin_13);
+//			Serial_SendString("LED OFF\r\n");
+//			
+//			Serial_SendByte(ReceiveData);
+//			Serial_SendString("\r\n");
+//		}
+//		else if (ReceiveData == 's')
+//		{
+//			Serial_SendString("PC13 state command received\r\n");
+//		}
+//		else if (ReceiveData == 'h')
+//		{
+//			Serial_SendString("1: LED ON\r\n");
+//			Serial_SendString("0: LED OFF\r\n");
+//			Serial_SendString("s: status\r\n");
+//			Serial_SendString("h: help\r\n");
+//		}
+//		}
 		
-		else if (ReceiveData == '0')
-		{
-			GPIO_SetBits(GPIOC, GPIO_Pin_13);
-			Serial_SendString("LED OFF\r\n");
-			
-			Serial_SendByte(ReceiveData);
-			Serial_SendString("\r\n");
-		}
-		else if (ReceiveData == 's')
-		{
-			Serial_SendString("PC13 state command received\r\n");
-		}
-		else if (ReceiveData == 'h')
-		{
-			Serial_SendString("1: LED ON\r\n");
-			Serial_SendString("0: LED OFF\r\n");
-			Serial_SendString("s: status\r\n");
-			Serial_SendString("h: help\r\n");
-		}
-		}
+			/* 任务4：接收一整句话 */
+			if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET)
+			{
+				uint8_t ReceiveData;
+
+				ReceiveData = USART_ReceiveData(USART1);
+
+				/* 回显普通字符 */
+				if (ReceiveData != '\r' && ReceiveData != '\n')
+				{
+					Serial_SendByte(ReceiveData);
+				}
+
+				if (ReceiveData == '\r' || ReceiveData == '\n')
+				{
+					if (CommandIndex > 0)
+					{
+						CommandBuffer[CommandIndex] = '\0';
+						CommandReady = 1;
+					}
+				}
+				else
+				{
+					if (CommandIndex < 31)
+					{
+						CommandBuffer[CommandIndex] = ReceiveData;
+						CommandIndex++;
+
+						/* 记录最后一个字符到达的时间 */
+						CommandLastTime = Timer2_Count;
+					}
+					else
+					{
+						CommandIndex = 0;
+						Serial_SendString("\r\nCommand too long\r\n");
+					}
+				}
+			}
+			/* 如果50ms没有收到新字符，认为命令已经结束 */
+			if (CommandIndex > 0 &&
+				CommandReady == 0 &&
+				Timer2_Count - CommandLastTime >= 50)
+			{
+				CommandBuffer[CommandIndex] = '\0';
+				CommandReady = 1;
+			}
+			/* 任务5：处理已经接收完整的命令 */
+			if (CommandReady == 1)
+			{
+				if (strcmp(CommandBuffer, "led on") == 0)
+			{
+				/* PC13输出低电平，板载LED亮 */
+				GPIO_ResetBits(GPIOC, GPIO_Pin_13);
+				Serial_SendString("LED ON\r\n");
+			}
+			else if (strcmp(CommandBuffer, "led off") == 0)
+			{
+				/* PC13输出高电平，板载LED灭 */
+				GPIO_SetBits(GPIOC, GPIO_Pin_13);
+				Serial_SendString("LED OFF\r\n");
+			}
+				else if (strcmp(CommandBuffer, "help") == 0)
+				{
+					Serial_SendString("led on\r\n");
+					Serial_SendString("led off\r\n");
+					Serial_SendString("help\r\n");
+				}
+				else
+				{
+					Serial_SendString("Unknown command\r\n");
+				}
+
+				CommandReady = 0;
+				CommandIndex = 0;
+			}
 	}
 }
